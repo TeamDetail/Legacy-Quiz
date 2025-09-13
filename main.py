@@ -5,6 +5,7 @@ import json
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+# db설정
 db = mysql.connector.connect(
     # host = os.getenv("DB_HOST"),
     # user = os.getenv("DB_USER"),
