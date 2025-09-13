@@ -7,11 +7,11 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # db설정
 db = mysql.connector.connect(
-    # host = os.getenv("DB_HOST"),
-    # user = os.getenv("DB_USER"),
-    # password = os.getenv("DB_PASSWORD"),
-    user="root",
-    password="n9800211",
+    host = os.getenv("DB_HOST"),
+    user = os.getenv("DB_USER"),
+    password = os.getenv("DB_PASSWORD"),
+    # user="root",
+    # password="n9800211",
     database="legacy",
 )
 cursor = db.cursor(dictionary=True)
@@ -52,7 +52,6 @@ def check_tables():
 
 
 def generate_quizzes(ruins_name):
-    """GPT를 이용해 해당 유적지 퀴즈 10개 생성"""
     try:
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
