@@ -7,9 +7,9 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # db설정
 db = mysql.connector.connect(
-    host = os.getenv("DB_HOST"),
-    user = os.getenv("DB_USER"),
-    password = os.getenv("DB_PASSWORD"),
+    host=os.getenv("DB_HOST"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
     # user="root",
     # password="n9800211",
     database="legacy",
@@ -22,12 +22,12 @@ QUIZ_PROMPT = """
 퀴즈 형식은 JSON 배열이고, 각 항목은 다음과 같아야 해:
 
 [
-  {
-    "quizProblem": "문제",
-    "answerOption": "정답",
-    "hint": "힌트",
-    "optionValues": ["보기1", "보기2", "보기3", "보기4", "보기5"]
-  }
+{
+"quizProblem": "문제",
+"answerOption": "정답",
+"hint": "힌트",
+"optionValues": ["보기1", "보기2", "보기3", "보기4", "보기5"]
+}
 ]
 
 반드시 유효한 JSON 형식으로만 답변해.
@@ -126,6 +126,34 @@ def save_quizzes(ruins_id, quizzes):
         return False
 
 
+def get_start_ruins_id():
+    """사용자로부터 시작할 유적지 ID를 입력받습니다."""
+    while True:
+        try:
+            start_id = input("시작할 유적지 ID를 입력하세요 (전체 처리하려면 Enter): ").strip()
+
+            if not start_id:
+                return None
+
+            start_id = int(start_id)
+
+            cursor.execute("SELECT ruins_id, name FROM ruins WHERE ruins_id = %s", (start_id,))
+            ruins = cursor.fetchone()
+
+            if ruins:
+                print(f"시작 유적지: ID {ruins['ruins_id']} - {ruins['name']}")
+                confirm = input("맞습니까? (y/n): ").strip().lower()
+                if confirm in ['y', 'yes', '네', 'ㅇ']:
+                    return start_id
+            else:
+                print(f"ID {start_id}에 해당하는 유적지가 없습니다.")
+
+        except ValueError:
+            print("올바른 숫자를 입력해주세요.")
+        except Exception as e:
+            print(f"오류: {e}")
+
+
 def main():
     if not openai.api_key:
         print("OpenAI API 키가 설정되지 않았습니다!")
@@ -139,15 +167,31 @@ def main():
         print("테이블 구조 확인 실패!")
         return
 
+    start_id = get_start_ruins_id()
+
     try:
-        cursor.execute("SELECT ruins_id, name FROM ruins")
+        if start_id:
+            cursor.execute(
+                "SELECT ruins_id, name FROM ruins WHERE ruins_id >= %s ORDER BY ruins_id",
+                (start_id,)
+            )
+        else:
+            cursor.execute("SELECT ruins_id, name FROM ruins ORDER BY ruins_id")
+
         ruins_list = cursor.fetchall()
 
         if not ruins_list:
-            print("유적지 데이터가 없습니다!")
+            print("처리할 유적지 데이터가 없습니다!")
             return
 
         print(f"총 {len(ruins_list)}개의 유적지를 처리합니다.")
+        if start_id:
+            print(f"시작 ID: {start_id}")
+
+        proceed = input("계속 진행하시겠습니까? (y/n): ").strip().lower()
+        if proceed not in ['y', 'yes', '네', 'ㅇ']:
+            print("작업을 취소합니다.")
+            return
 
     except Exception as e:
         print(f"유적지 데이터 조회 실패: {e}")
@@ -158,26 +202,26 @@ def main():
         ruins_id = ruins["ruins_id"]
         name = ruins["name"]
 
-        print(f"[{i}/{len(ruins_list)}] {name} 퀴즈 생성 중...")
+        print(f"[{i}/{len(ruins_list)}] ID {ruins_id}: {name} 퀴즈 생성 중...")
 
         quizzes = generate_quizzes(name)
         if quizzes:
             if save_quizzes(ruins_id, quizzes):
-                print(f"{name} 퀴즈 {len(quizzes)}개 저장 완료")
+                print(f"✓ {name} 퀴즈 {len(quizzes)}개 저장 완료")
                 success_count += 1
             else:
-                print(f"{name} 퀴즈 저장 실패")
+                print(f"✗ {name} 퀴즈 저장 실패")
         else:
-            print(f"{name} 퀴즈 생성 실패")
+            print(f"✗ {name} 퀴즈 생성 실패")
 
-    print(f"\n 작업 완료: {success_count}/{len(ruins_list)}개 유적지 처리 성공")
+    print(f"\n작업 완료: {success_count}/{len(ruins_list)}개 유적지 처리 성공")
 
-
+# 메인
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n 사용자에 의해 중단되었습니다.")
+        print("\n사용자에 의해 중단되었습니다.")
     except Exception as e:
         print(f"예상치 못한 오류: {e}")
     finally:
@@ -185,4 +229,4 @@ if __name__ == "__main__":
             cursor.close()
         if 'db' in globals():
             db.close()
-        print(" 데이터베이스 연결 종료")
+        print("데이터베이스 연결 종료")
