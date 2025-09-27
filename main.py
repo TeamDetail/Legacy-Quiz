@@ -216,7 +216,7 @@ def main():
 
     print(f"\n작업 완료: {success_count}/{len(ruins_list)}개 유적지 처리 성공")
 
-# 메인
+# 실행
 if __name__ == "__main__":
     try:
         main()
