@@ -153,7 +153,7 @@ def get_start_ruins_id():
         except Exception as e:
             print(f"오류: {e}")
 
-
+# 메인
 def main():
     if not openai.api_key:
         print("OpenAI API 키가 설정되지 않았습니다!")
